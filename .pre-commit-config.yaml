@@ -20,7 +20,7 @@ repos:
         name: ty (type-check)
         language: python
         pass_filenames: false
-        additional_dependencies: ["ty"]
+        additional_dependencies: ["ty", "pytest"]
         entry: python -m ty check
         stages: [pre-commit]
 
