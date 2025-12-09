@@ -1,8 +1,9 @@
-from datetime import UTC, datetime, timezone
+from datetime import UTC, date, datetime, timezone
 
 from _pytest.monkeypatch import MonkeyPatch
 import pytest
 
+from src.enums.priority_enum import PriorityEnum
 from src.enums.status_enum import StatusEnum
 import src.task.task as task_module
 from src.task.task import Task
@@ -79,3 +80,16 @@ def task_2() -> Task:
 @pytest.fixture
 def task_3() -> Task:
     return Task(description="task_3", status=StatusEnum.COMPLETED, completed_at=datetime(2025, 11, 30, tzinfo=UTC))
+
+
+@pytest.fixture
+def task_4() -> Task:
+    return Task(
+        description="task_4",
+        status=StatusEnum.IN_PROGRESS,
+        priority=PriorityEnum.HIGH,
+        created_at=datetime(2025, 11, 20, tzinfo=UTC),
+        deadline=date(2025, 12, 15),
+        completed_at=datetime(2025, 11, 30, tzinfo=UTC),
+        tags=["learning", "feature", "work"],
+    )

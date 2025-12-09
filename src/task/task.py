@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 from datetime import UTC, date, datetime
 import re
+from typing import Literal
 from uuid import UUID, uuid4
 
 from src.enums.priority_enum import PriorityEnum
@@ -30,6 +31,9 @@ class Task:
 
         if self.status is StatusEnum.COMPLETED and self.completed_at is None:
             self.completed_at = datetime.now(UTC)
+
+        if self.status is not StatusEnum.COMPLETED:
+            self.completed_at = None
 
     @property
     def description(self) -> str:
@@ -96,10 +100,26 @@ class Task:
 
     @property
     def tags(self) -> list[str]:
+        """list[str]: A list of normalized, unique tags assigned to the task.
+
+        Returns the list of tags currently associated with the task.
+        All tags are stored in lowercase, trimmed of excess whitespace,
+        and duplicates are removed.
+        """
         return self._tags
 
     @tags.setter
     def tags(self, value: Iterable[str] | None) -> None:
+        """Sets the list of tags for the task.
+
+        Normalizes each tag (lowercases, trims whitespace, removes
+        repeated spaces) and ensures all tags are unique. If ``None`` is
+        provided, an empty list is assigned.
+
+        Args:
+            value (Iterable[str] | None): A collection of tag strings or
+                ``None`` to clear all tags.
+        """
         if value is None:
             self._tags: list[str] = []
         else:
@@ -107,10 +127,23 @@ class Task:
 
     @property
     def status(self) -> StatusEnum:
+        """StatusEnum: The current workflow state of the task.
+        Returns the task's status, such as TODO, IN_PROGRESS,
+        or COMPLETED.
+        """
         return self._status
 
     @status.setter
     def status(self, value: StatusEnum) -> None:
+        """Sets the task's status.
+        If the status transitions to ``COMPLETED`` and no completion time
+        has been set, the current UTC timestamp is assigned automatically.
+        If the status transitions away from ``COMPLETED``, the completion
+        timestamp is cleared.
+
+        Args:
+            value (StatusEnum): The new status to assign.
+        """
         old_status = getattr(self, "status", None)
 
         if old_status is value:
@@ -129,10 +162,26 @@ class Task:
 
     @property
     def idx(self) -> UUID:
+        """UUID: A unique identifier for the task.
+
+        Returns the UUID associated with this task instance.
+        """
         return self._idx
 
     @idx.setter
     def idx(self, value: UUID | str | None) -> None:
+        """Sets the unique identifier of the task.
+
+        If ``None`` is provided, a new random UUIDv4 is generated.
+        If a string is provided, it is interpreted as a UUIDv4 value.
+
+        Args:
+            value (UUID | str | None): The UUID to assign, a string
+                representation of a UUID, or ``None`` to auto-generate one.
+
+        Raises:
+            ValueError: If the provided string is not a valid UUIDv4.
+        """
         if value is None:
             self._idx = uuid4()
         elif isinstance(value, str):
@@ -142,10 +191,33 @@ class Task:
 
     @staticmethod
     def _normalize(text: str) -> str:
+        """Normalizes a text value.
+
+        Replaces multiple consecutive whitespace characters with a
+        single space, trims leading/trailing whitespace, and converts
+        the text to lowercase.
+
+        Args:
+            text (str): The text to normalize.
+
+        Returns:
+            str: A cleaned, standardized representation of the string.
+        """
         return re.sub(r"\s{2,}", " ", text).strip().lower()
 
     @staticmethod
     def _unique_values(values: Iterable[str]) -> list[str]:
+        """Returns unique values from an iterable while preserving order.
+
+        Iterates through the provided values and builds a list containing
+        only the first occurrence of each distinct value.
+
+        Args:
+            values (Iterable[str]): The collection of strings to deduplicate.
+
+        Returns:
+            list[str]: A list containing unique items in their original order.
+        """
         seen: set[str] = set()
         out: list[str] = []
 
@@ -154,3 +226,77 @@ class Task:
                 seen.add(value)
                 out.append(value)
         return out
+
+    def __repr__(self) -> str:
+        """Returns an unambiguous string representation of the task.
+
+        The returned string contains all core task attributes and is
+        intended for debugging and logging purposes.
+
+        Returns:
+            str: A detailed string representing the task object.
+        """
+        return (
+            f"{type(self).__name__}(description={self.description!r}, status={self.status!r}, "
+            f"priority={self.priority!r}, created_at={self.created_at!r}, deadline={self.deadline!r}, "
+            f"completed_at={self.completed_at!r}, tags={self.tags!r})"
+        )
+
+    def __str__(self) -> str:
+        """Returns a human-readable representation of the task.
+
+        Produces a compact summary including status, description, priority,
+        deadline, completion date, and tags.
+
+        Returns:
+            str: A concise, user-friendly description of the task.
+        """
+        status: Literal["✓", "✗"] = "✓" if self.status == StatusEnum.COMPLETED else "✗"
+        deadline: str = self.deadline.strftime("%d/%m/%Y") if self.deadline else "-"
+        completed: str = self.completed_at.strftime("%d/%m/%Y") if self.completed_at else "-"
+        tags: str = ", ".join(self.tags) if self.tags else "-"
+
+        return (
+            f"[{status}] {self.description} | "
+            f"Priority: {self.priority.name} | "
+            f"Deadline: {deadline} | "
+            f"Tags: {tags} | "
+            f"Completed: {completed}"
+        )
+
+    def __format__(self, format_spec: str) -> str:
+        """Formats the task according to the given specification.
+
+        Supported formats:
+            - ``'short'`` or ``'s'``: A compact summary.
+            - ``'long'`` or ``'l'``: A verbose, multi-line description.
+            - Default: Same as ``str(self)``.
+
+        Args:
+            format_spec (str): The format instruction.
+
+        Returns:
+            str: The formatted string representation of the task.
+        """
+        format_spec: str = (format_spec or "str").lower().strip()
+        status: Literal["✓", "✗"] = "✓" if self.status == StatusEnum.COMPLETED else "✗"
+        tags: str = ", ".join(self.tags) if self.tags else "-"
+        deadline: str = self.deadline.strftime("%d/%m/%Y") if self.deadline else "-"
+        completed: str = self.completed_at.strftime("%d/%m/%Y") if self.completed_at else "-"
+        created: str = self.created_at.strftime("%d/%m/%Y")
+
+        if format_spec in {"short", "s"}:
+            return f"[{status}] {self.description}, {self.priority.name}, deadline: {deadline}"
+
+        if format_spec in {"long", "l"}:
+            return (
+                f"Task:\n"
+                f"  Status: {self.status} ({status})\n"
+                f"  Description: {self.description}\n"
+                f"  Priority: {self.priority.name}\n"
+                f"  Created At: {created}\n"
+                f"  Deadline: {deadline}\n"
+                f"  Completed: {completed}\n"
+                f"  Tags: {tags}"
+            )
+        return str(self)

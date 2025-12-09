@@ -20,3 +20,8 @@ def test_status_changes_status(task_2: Task) -> None:
     task_2.status = StatusEnum.TODO
     assert task_2.completed_at is None
     assert task_2.status == StatusEnum.TODO
+
+
+def test_status(task_4: Task) -> None:
+    assert task_4.completed_at is None
+    assert task_4.status == StatusEnum.IN_PROGRESS
