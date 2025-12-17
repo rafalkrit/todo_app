@@ -227,6 +227,62 @@ class Task:
                 out.append(value)
         return out
 
+    def add_tag(self, value: str) -> None:
+        """Adds a tag to the task.
+
+        Normalizes the provided tag value and appends it to the task's tag list
+        if it is not already present.
+
+        Args:
+            value (str): The tag to add.
+
+        Returns:
+            None
+        """
+        tag = self._normalize(value)
+        if tag not in self.tags:
+            self.tags.append(tag)
+
+    def remove_tag(self, value: str) -> None:
+        """Removes a tag from the task.
+
+        Normalizes the provided tag value and removes it from the task's tag list
+        if it exists.
+
+        Args:
+            value (str): The tag to remove.
+
+        Returns:
+            None
+        """
+        tag = self._normalize(value)
+        if tag in self.tags:
+            self.tags.remove(tag)
+
+    def clone(self) -> "Task":
+        """Creates a copy of the task with updated timestamps.
+
+        Produces a new Task instance based on the current one. The cloned task
+        receives a new creation timestamp. Deadline and completion date are
+        preserved only if they are not in the past relative to the new creation
+        time.
+
+        Returns:
+            Task: A new task instance cloned from the original.
+        """
+        created_at: datetime = datetime.now(UTC)
+        status: StatusEnum = StatusEnum.TODO if self.status is StatusEnum.COMPLETED else self.status
+        deadline: date | None = None if self.deadline and self.deadline < created_at.date() else self.deadline
+        return Task(
+            description=self.description,
+            status=status,
+            priority=self.priority,
+            created_at=created_at,
+            deadline=deadline,
+            completed_at=None,
+            tags=list(self.tags),
+        )
+
     def __repr__(self) -> str:
         """Returns an unambiguous string representation of the task.
 
