@@ -1,0 +1,51 @@
+from collections import Counter
+from collections.abc import Iterable
+from uuid import UUID
+
+from src.task.task import Task
+
+
+class TaskList:
+    def __init__(self, tasks: Iterable[Task] | None = None) -> None:
+        self.tasks: list[Task] = tasks
+
+    @property
+    def tasks(self) -> list[Task]:
+        return self._tasks
+
+    @tasks.setter
+    def tasks(self, value: Iterable[Task] | None = None) -> None:
+
+        if value is None:
+            self._tasks: list[Task] = []
+        else:
+            items: list[Task] = list(value)
+            self._unique_ids(items)
+            self._tasks: list[Task] = items
+
+    @staticmethod
+    def _unique_ids(tasks: Iterable[Task]) -> None:
+        ids: list[str] = [str(task.idx) for task in tasks]
+        counter = Counter(ids)
+        duplicates: list[str] = [idx for idx, count in counter.items() if count > 1]
+        if duplicates:
+            raise ValueError(f"Duplicate task index detected: {', '.join(duplicates)}.")
+
+    def add(self, task: Task) -> None:
+        self._unique_ids([*self._tasks, task])
+        self._tasks.append(task)
+
+    def remove(self, idx: UUID) -> None:
+        for task in self._tasks:
+            if task.idx == idx:
+                self._tasks.remove(task)
+                return
+
+        raise ValueError(f"Task with {idx} does not exist")
+
+    def get(self, idx: UUID) -> Task:
+        for task in self._tasks:
+            if task.idx == idx:
+                return task
+
+        raise ValueError(f"Task with {idx} does not exist")
