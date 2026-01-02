@@ -1,7 +1,10 @@
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
+from datetime import date
 from uuid import UUID
 
+from src.enums.priority_enum import PriorityEnum
+from src.enums.status_enum import StatusEnum
 from src.task.task import Task
 
 
@@ -49,3 +52,29 @@ class TaskList:
                 return task
 
         raise ValueError(f"Task with {idx} does not exist")
+
+    def filter_by(
+        self,
+        status: StatusEnum | None = None,
+        priority: PriorityEnum | None = None,
+        tag: str | None = None,
+        deadline_before: date | None = None,
+        deadline_after: date | None = None,
+        custom_filter: Callable[[Task], bool] | None = None,
+    ) -> "TaskList":
+
+        def matches(task: Task) -> bool:
+
+            priority_ok = priority is None or task.priority is priority
+            status_ok = status is None or task.status is status
+            tag_ok = tag is None or tag in task.tags
+
+            deadline_before_ok = deadline_before is None or (
+                task.deadline is not None and task.deadline < deadline_before
+            )
+            deadline_after_ok = deadline_after is None or (task.deadline is not None and task.deadline > deadline_after)
+            custom_filter_ok = custom_filter is None or custom_filter(task)
+
+            return all((priority_ok, status_ok, tag_ok, deadline_before_ok, deadline_after_ok, custom_filter_ok))
+
+        return TaskList([task for task in self._tasks if matches(task)])

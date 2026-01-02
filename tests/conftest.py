@@ -7,6 +7,7 @@ from src.enums.priority_enum import PriorityEnum
 from src.enums.status_enum import StatusEnum
 import src.task.task as task_module
 from src.task.task import Task
+from src.task_list.task_list import TaskList
 
 
 class _FixedDatetime(datetime):
@@ -93,3 +94,8 @@ def task_4() -> Task:
         completed_at=datetime(2025, 11, 30, tzinfo=UTC),
         tags=["learning", "feature", "work"],
     )
+
+
+@pytest.fixture
+def task_list(task_1: Task, task_2: Task, task_3: Task, task_4: Task) -> TaskList:
+    return TaskList([task_1, task_2, task_3, task_4])
