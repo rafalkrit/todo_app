@@ -1,5 +1,5 @@
 from collections import Counter
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
 from datetime import date
 from uuid import UUID
 
@@ -78,3 +78,15 @@ class TaskList:
             return all((priority_ok, status_ok, tag_ok, deadline_before_ok, deadline_after_ok, custom_filter_ok))
 
         return TaskList([task for task in self._tasks if matches(task)])
+
+    def __len__(self) -> int:
+        return len(self.tasks)
+
+    def __iter__(self) -> Iterator[Task]:
+        return iter(self.tasks)
+
+    def __contains__(self, idx: UUID) -> bool:
+        return any(task.idx == idx for task in self.tasks)
+
+    def __getitem__(self, index: int) -> Task:
+        return self.tasks[index]
