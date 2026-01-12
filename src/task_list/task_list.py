@@ -1,6 +1,8 @@
 from collections import Counter
 from collections.abc import Callable, Iterable, Iterator
 from datetime import date
+from operator import attrgetter
+from typing import Any
 from uuid import UUID
 
 from src.enums.priority_enum import PriorityEnum
@@ -78,6 +80,35 @@ class TaskList:
             return all((priority_ok, status_ok, tag_ok, deadline_before_ok, deadline_after_ok, custom_filter_ok))
 
         return TaskList([task for task in self._tasks if matches(task)])
+
+    def sort_by(self, *, key: Callable[[Task], Any] | None = None, reverse: bool = False) -> "TaskList":
+        key_func: Callable[[Task], Any] = key or attrgetter("priority")
+        return TaskList(sorted(self.tasks, key=key_func, reverse=reverse))
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(tasks={self.tasks!r})"
+
+    def __str__(self) -> str:
+        if not self.tasks:
+            return "TaskList (empty)"
+
+        tasks_str: str = "\n".join(f"- {task}" for task in self.tasks)
+        return f"TaskList ({len(self.tasks)} tasks):\n{tasks_str}"
+
+    def __format__(self, format_spec: str) -> str:
+        format_spec: str = (format_spec or "str").lower().strip()
+
+        if format_spec in {"short", "s"}:
+            return f"TaskList ({len(self.tasks)} tasks)"
+
+        if format_spec in {"long", "l"}:
+            if not self.tasks:
+                return "TaskList (empty)"
+
+            tasks_str: str = "\n\n".join(format(task, "long") for task in self.tasks)
+            return f"TaskList:\n{tasks_str}"
+
+        return str(self)
 
     def __len__(self) -> int:
         return len(self.tasks)
