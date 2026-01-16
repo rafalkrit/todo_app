@@ -97,5 +97,10 @@ def task_4() -> Task:
 
 
 @pytest.fixture
+def task_5() -> Task:
+    return Task(description="task_2", status=StatusEnum.COMPLETED, deadline=date(2026, 1, 10))
+
+
+@pytest.fixture
 def task_list(task_1: Task, task_2: Task, task_3: Task, task_4: Task) -> TaskList:
     return TaskList([task_1, task_2, task_3, task_4])
