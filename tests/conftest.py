@@ -97,5 +97,24 @@ def task_4() -> Task:
 
 
 @pytest.fixture
+def task_dict() -> dict[str, object]:
+    return {
+        "description": "Python learn",
+        "status": "in progress",
+        "priority": 2,
+        "created_at": "2025-11-20T00:00:00+00:00",
+        "deadline": "2026-10-15",
+        "completed_at": None,
+        "tags": ["learning", "work"],
+        "idx": "63614577-08fa-4049-8e23-267d6867517c",
+    }
+
+
+@pytest.fixture
 def task_list(task_1: Task, task_2: Task, task_3: Task, task_4: Task) -> TaskList:
     return TaskList([task_1, task_2, task_3, task_4])
+
+
+@pytest.fixture
+def task_list_dict(task_dict: dict[str, object]) -> dict[str, list]:
+    return {"tasks": [task_dict, {**task_dict, "idx": "3b71a536-040b-47e9-934d-ac281e50c0da"}]}
