@@ -1,11 +1,14 @@
 from collections.abc import Iterable
 from datetime import UTC, date, datetime
+import json
 import re
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from src.enums.priority_enum import PriorityEnum
 from src.enums.status_enum import StatusEnum
+from src.schemas.guards.task_dict_guard import is_task_dict
+from src.schemas.tasks_schema import TaskDict
 
 
 class Task:
@@ -282,6 +285,43 @@ class Task:
             completed_at=None,
             tags=list(self.tags),
         )
+
+    def to_dict(self) -> TaskDict:
+        return {
+            "description": self.description,
+            "status": self.status.value,
+            "priority": self.priority.value,
+            "created_at": self.created_at.isoformat(),
+            "deadline": self.deadline.isoformat() if self.deadline else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "tags": self.tags,
+            "idx": str(self.idx),
+        }
+
+    @classmethod
+    def from_dict(cls, data: TaskDict) -> "Task":
+        return cls(
+            description=data["description"],
+            status=StatusEnum(data["status"]),
+            priority=PriorityEnum(data["priority"]),
+            created_at=datetime.fromisoformat(data["created_at"]),
+            deadline=date.fromisoformat(data["deadline"]) if data["deadline"] else None,
+            completed_at=datetime.fromisoformat(data["completed_at"]) if data["completed_at"] else None,
+            tags=data["tags"],
+            idx=data["idx"],
+        )
+
+    def to_json(self, *, indent: int | None = None) -> str:
+        return json.dumps(self.to_dict(), ensure_ascii=False, indent=indent)
+
+    @classmethod
+    def from_json(cls, raw: str) -> "Task":
+        payload: Any = json.loads(raw)
+
+        if not is_task_dict(payload):
+            raise TypeError("Invalid Task json structure.")
+
+        return cls.from_dict(payload)
 
     def __repr__(self) -> str:
         """Returns an unambiguous string representation of the task.

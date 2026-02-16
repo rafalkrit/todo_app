@@ -1,12 +1,15 @@
 from collections import Counter
 from collections.abc import Callable, Iterable, Iterator
 from datetime import date
+import json
 from operator import attrgetter
 from typing import Any
 from uuid import UUID
 
 from src.enums.priority_enum import PriorityEnum
 from src.enums.status_enum import StatusEnum
+from src.schemas.guards.task_list_dict_guard import is_task_list_dict
+from src.schemas.task_list_schema import TaskListDict
 from src.task.task import Task
 
 
@@ -92,8 +95,7 @@ class TaskList:
         if not self.tasks:
             return "TaskList (empty)"
 
-        tasks_str: str = "\n".join(f"- {task}" for task in self.tasks)
-        return f"TaskList ({len(self.tasks)} tasks):\n{tasks_str}"
+        return f"TaskList ({len(self.tasks)} tasks)"
 
     def __format__(self, format_spec: str) -> str:
         format_spec: str = (format_spec or "str").lower().strip()
@@ -105,10 +107,29 @@ class TaskList:
             if not self.tasks:
                 return "TaskList (empty)"
 
-            tasks_str: str = "\n\n".join(format(task, "long") for task in self.tasks)
+            tasks_str: str = "\n".join(f"- {format(task, 'long')}" for task in self.tasks)
             return f"TaskList:\n{tasks_str}"
 
         return str(self)
+
+    def to_dict(self) -> TaskListDict:
+        return {"tasks": [task.to_dict() for task in self]}
+
+    @classmethod
+    def from_dict(cls, data: TaskListDict) -> "TaskList":
+        return cls([Task.from_dict(task) for task in data["tasks"]])
+
+    def to_json(self, *, indent: int | None = None) -> str:
+        return json.dumps(self.to_dict(), ensure_ascii=False, indent=indent)
+
+    @classmethod
+    def from_json(cls, raw: str) -> "TaskList":
+        payload: Any = json.loads(raw)
+
+        if not is_task_list_dict(payload):
+            raise TypeError("Invalid TaskList json structure.")
+
+        return cls.from_dict(payload)
 
     def __len__(self) -> int:
         return len(self.tasks)
