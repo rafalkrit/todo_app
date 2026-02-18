@@ -97,6 +97,11 @@ def task_4() -> Task:
 
 
 @pytest.fixture
+def task_5() -> Task:
+    return Task(description="task_2", status=StatusEnum.COMPLETED, deadline=date(2026, 1, 10))
+
+
+@pytest.fixture
 def task_dict() -> dict[str, object]:
     return {
         "description": "Python learn",
