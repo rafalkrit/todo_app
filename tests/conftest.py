@@ -1,4 +1,5 @@
-from datetime import UTC, date, datetime, timezone
+from datetime import UTC, date, datetime, tzinfo
+from pathlib import Path
 
 from _pytest.monkeypatch import MonkeyPatch
 import pytest
@@ -10,7 +11,7 @@ from src.task.task import Task
 from src.task_list.task_list import TaskList
 
 
-class _FixedDatetime(datetime):
+class FixedDatetime(datetime):
     """A datetime subclass that always returns a fixed timestamp.
 
     This class overrides :func:`datetime.now` to return a constant
@@ -30,7 +31,7 @@ class _FixedDatetime(datetime):
     _fixed_now = datetime(2025, 12, 4, tzinfo=UTC)
 
     @classmethod
-    def now(cls, tz: timezone | None = None) -> datetime:
+    def now(cls, tz: tzinfo | None = None) -> datetime:
         """Return the fixed datetime instance.
 
         Args:
@@ -43,6 +44,11 @@ class _FixedDatetime(datetime):
 
         """
         return cls._fixed_now if tz is None else cls._fixed_now.astimezone(tz)
+
+
+@pytest.fixture
+def fixed_datetime() -> type[FixedDatetime]:
+    return FixedDatetime
 
 
 @pytest.fixture(autouse=True)
@@ -59,7 +65,7 @@ def _freeze_datetime(monkeypatch: MonkeyPatch) -> None:
             replace object attributes during tests.
 
     """
-    monkeypatch.setattr(task_module, "datetime", _FixedDatetime)
+    monkeypatch.setattr(task_module, "datetime", FixedDatetime)
 
 
 @pytest.fixture
@@ -123,3 +129,9 @@ def task_list(task_1: Task, task_2: Task, task_3: Task, task_4: Task) -> TaskLis
 @pytest.fixture
 def task_list_dict(task_dict: dict[str, object]) -> dict[str, list]:
     return {"tasks": [task_dict, {**task_dict, "idx": "3b71a536-040b-47e9-934d-ac281e50c0da"}]}
+
+
+@pytest.fixture
+def tmp_file(tmp_path: Path) -> Path:
+    """Provide a temporary file path for storage."""
+    return tmp_path / "data.json"

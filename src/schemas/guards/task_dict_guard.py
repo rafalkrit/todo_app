@@ -4,6 +4,7 @@ from src.schemas.tasks_schema import TaskDict
 
 
 def is_task_dict(obj: object) -> TypeGuard[TaskDict]:
+    """Return whether an object matches the serialized TaskDict shape."""
     if not isinstance(obj, dict):
         return False
 
