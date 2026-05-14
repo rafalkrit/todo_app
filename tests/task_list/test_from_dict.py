@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 from uuid import UUID, uuid4
 
 import pytest
@@ -11,7 +11,10 @@ from src.task_list.task_list import TaskList
 
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from src.schemas.task_list_schema import TaskListDict
+    from src.task.task import Task
 
 
 @dataclass(frozen=True)
@@ -31,7 +34,7 @@ def test_to_dict_builds_tasks_list(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(task_list_module, "Task", _TaskStub, raising=True)
     tasks = [_TaskStub({"description": "a"}, idx=uuid4()), _TaskStub({"description": "b"}, idx=uuid4())]
-    task_list = TaskList(tasks)  # type: ignore[arg-type]
+    task_list = TaskList(cast("Iterable[Task]", tasks))
 
     assert task_list.to_dict() == {"tasks": [{"description": "a"}, {"description": "b"}]}
 
@@ -49,7 +52,7 @@ def test_from_dict_creates_task_list_and_calls_task_from_dict(monkeypatch: pytes
     monkeypatch.setattr(task_list_module, "Task", _TaskSpy, raising=True)
     data: dict[str, list[dict[str, str]]] = {"tasks": [{"description": "a"}, {"description": "b"}]}
 
-    tasks = TaskList.from_dict(data)  # type: ignore[arg-type]
+    tasks = TaskList.from_dict(cast("TaskListDict", data))
 
     assert isinstance(tasks, TaskList)
     assert len(calls) == 2
@@ -110,4 +113,4 @@ def test_task_list_from_dict_tasks_is_not_list() -> None:
     data = {"tasks": "not a list"}
 
     with pytest.raises(TypeError):
-        TaskList.from_dict(data)  # type: ignore[arg-type]
+        TaskList.from_dict(cast("TaskListDict", data))

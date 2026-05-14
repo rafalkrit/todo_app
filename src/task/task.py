@@ -12,6 +12,14 @@ from src.schemas.tasks_schema import TaskDict
 
 
 class Task:
+    """Represent a single todo item with validation and serialization behavior.
+
+    A task owns its business invariants: description length, deadline validity,
+    tag normalization, UUID handling, and completion timestamp transitions. It
+    can be converted to and from dictionary or JSON payloads used by the storage
+    layer.
+    """
+
     def __init__(
         self,
         description: str,
@@ -23,14 +31,26 @@ class Task:
         tags: Iterable[str] | None = None,
         idx: UUID | str | None = None,
     ) -> None:
+        """Create a task and apply domain defaults.
+
+        Args:
+            description: Human-readable task description.
+            status: Initial workflow status.
+            priority: Initial priority level.
+            created_at: Optional creation timestamp. Defaults to current UTC time.
+            deadline: Optional due date.
+            completed_at: Optional completion timestamp.
+            tags: Optional iterable of tag values.
+            idx: Optional UUID, UUID string, or None to generate a new UUID.
+        """
         self.description: str = description
         self.status: StatusEnum = status
         self.priority: PriorityEnum = priority
         self.created_at: datetime = created_at if created_at is not None else datetime.now(UTC)
         self.deadline: date | None = deadline
         self.completed_at: datetime | None = completed_at
-        self.tags: list[str] = tags
-        self.idx: UUID = idx
+        self.tags = tags
+        self.idx = idx
 
         if self.status is StatusEnum.COMPLETED and self.completed_at is None:
             self.completed_at = datetime.now(UTC)
@@ -287,6 +307,11 @@ class Task:
         )
 
     def to_dict(self) -> TaskDict:
+        """Serialize the task to a storage-ready dictionary.
+
+        Returns:
+            TaskDict: Dictionary representation using JSON-compatible values.
+        """
         return {
             "description": self.description,
             "status": self.status.value,
@@ -300,6 +325,14 @@ class Task:
 
     @classmethod
     def from_dict(cls, data: TaskDict) -> "Task":
+        """Create a task from its dictionary representation.
+
+        Args:
+            data: Serialized task data matching the TaskDict contract.
+
+        Returns:
+            Task: Rehydrated task instance.
+        """
         return cls(
             description=data["description"],
             status=StatusEnum(data["status"]),
@@ -312,10 +345,33 @@ class Task:
         )
 
     def to_json(self, *, indent: int | None = None) -> str:
+        """Serialize the task to a JSON string.
+
+        Args:
+            indent: Optional indentation level passed to json.dumps.
+
+        Returns:
+            str: JSON representation of the task.
+        """
         return json.dumps(self.to_dict(), ensure_ascii=False, indent=indent)
 
     @classmethod
     def from_json(cls, raw: str) -> "Task":
+        """Create a task from a JSON string.
+
+        The payload is validated with the runtime TaskDict guard before the
+        domain object is constructed.
+
+        Args:
+            raw: JSON string containing a serialized task.
+
+        Returns:
+            Task: Rehydrated task instance.
+
+        Raises:
+            TypeError: If the JSON payload does not match the TaskDict shape.
+            json.JSONDecodeError: If the input is not valid JSON.
+        """
         payload: Any = json.loads(raw)
 
         if not is_task_dict(payload):

@@ -1,6 +1,6 @@
 from datetime import UTC, date, datetime
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 from uuid import UUID
 
 import pytest
@@ -42,7 +42,7 @@ def test_from_dict_correct() -> None:
 def test_from_dict_incorrect_keys() -> None:
     data: dict[str, str] = {"description": "learn python"}
     with pytest.raises(KeyError):
-        Task.from_dict(data)  # type: ignore[arg-type]
+        Task.from_dict(cast("TaskDict", data))
 
 
 def test_from_dict_incorrect_value() -> None:
@@ -50,4 +50,4 @@ def test_from_dict_incorrect_value() -> None:
 
     msg = re.escape("[1, 3] is not a valid StatusEnum")
     with pytest.raises(ValueError, match=msg):
-        Task.from_dict(data)  # type: ignore[agr-type]
+        Task.from_dict(cast("TaskDict", data))
