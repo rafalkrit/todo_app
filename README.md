@@ -1,127 +1,95 @@
-# Todo App
+# todo_app
 
 A typed Python CLI application for managing tasks from an interactive terminal interface.
 
-This project is intentionally small, but it is structured like a maintainable production codebase: domain logic is separated from CLI workflows, persistence is isolated behind a state layer, data contracts are typed, and the code is covered by automated quality checks.
+[![Python](https://img.shields.io/badge/python-3.13-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![uv](https://img.shields.io/badge/uv-package%20manager-blueviolet?style=flat-square)](https://docs.astral.sh/uv/)
+[![Ruff](https://img.shields.io/badge/ruff-linting-orange?style=flat-square)](https://docs.astral.sh/ruff/)
+[![ty](https://img.shields.io/badge/ty-type%20checked-informational?style=flat-square)](https://github.com/astral-sh/ty)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?style=flat-square)](https://pre-commit.com/)
+[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen?style=flat-square)](https://github.com/rafalkrit/todo_app)
 
-## Why This Project Exists
+---
 
-Todo App is a portfolio project focused on clean Python application architecture, not on UI complexity.
+## Overview
 
-It demonstrates:
+todo_app is a portfolio project focused on clean Python application architecture.
 
-- domain-driven modeling with `Task` and `TaskList`
-- clear separation between domain, CLI, UI, schemas, and persistence
-- JSON serialization and runtime data validation
-- interactive terminal workflows with Typer, Questionary, and Rich
-- testable command handlers with mocked prompts and state
-- strict tooling with Ruff, pytest, coverage, and ty
+The codebase is intentionally small but structured like a maintainable production system:
+
+- domain logic is fully separated from CLI and UI layers
+- data contracts are typed with `TypedDict` and runtime guards
+- interactive workflows are testable via monkeypatched prompts and state
+- all code paths are covered by automated quality checks
+
+---
 
 ## Features
 
-- Add new tasks interactively
-- List tasks in a formatted terminal table
-- Update task fields
-- Remove tasks by list number
-- Store tasks in a local JSON file
-- Validate task descriptions, deadlines, IDs, tags, and serialized data
-- Filter and sort task collections at the domain level
-- Serialize and restore tasks from dictionaries and JSON
+- Add, list, update, and remove tasks from an interactive terminal menu
+- Rich table rendering with status, priority, deadline, and tags
+- Full JSON persistence via a configurable storage file
+- Automatic `completed_at` management on status transitions
+- Tag normalization: lowercase, trimmed, deduplicated, order-preserved
+- Deadline validation against task creation date
+- UUIDv4 identity for every task
 
-## Tech Stack
-
-| Area | Tool |
-| --- | --- |
-| Language | Python 3.13 |
-| CLI | Typer |
-| Prompts | Questionary |
-| Terminal output | Rich |
-| Package manager | uv |
-| Tests | pytest |
-| Linting / formatting | Ruff |
-| Type checking | ty |
-| Git hooks | pre-commit |
-
-## Architecture
-
-The project is split into small layers with clear responsibilities:
-
-```text
-src/
-|-- cli/          # command handlers, app state, command registration
-|-- enums/        # status and priority enums
-|-- schemas/      # typed JSON contracts and runtime guards
-|-- task/         # Task domain model
-|-- task_list/    # TaskList collection model
-`-- ui/           # prompts, console output, table rendering
-```
-
-### Core Design Decisions
-
-- `Task` owns validation rules such as description length, deadline validity, UUID handling, tag normalization, and completion timestamps.
-- `TaskList` owns collection behavior such as uniqueness, filtering, sorting, lookup, and serialization.
-- CLI commands orchestrate workflows but do not own business rules.
-- Storage is file-based and configured through an environment variable.
-- Tests isolate interactive flows by monkeypatching prompts and persistence functions.
+---
 
 ## Quick Start
 
-Install dependencies:
+**1. Install dependencies**
 
 ```powershell
 uv sync
 ```
 
-Create a local storage file:
+**2. Create a storage file**
 
 ```powershell
 New-Item -ItemType Directory -Force .\temp
 '{"tasks": []}' | Set-Content -Encoding utf8 .\temp\todo_list.json
 ```
 
-Configure the storage path:
+**3. Set the storage path**
 
 ```powershell
 $env:STORAGE_PATH_ENV = "$PWD\temp\todo_list.json"
 ```
 
-Run the application:
+**4. Run**
 
 ```powershell
 uv run python main.py
 ```
 
+---
+
+## Configuration
+
+| Variable | Required | Description |
+|---|---|---|
+| `STORAGE_PATH_ENV` | yes | Absolute path to the JSON storage file. Must exist before running. |
+
+---
+
 ## Usage
 
-After starting the app, choose an action from the interactive menu:
+The application starts with an interactive menu:
 
-```text
-Show tasks
-Add task
-Update task
-Remove task
-Exit
-```
+**Add task** prompts for:
 
-When adding or updating a task, the app prompts for fields such as:
+| Field | Constraints |
+|---|---|
+| Description | 3–120 characters |
+| Status | `todo` · `in progress` · `completed` · `blocked` |
+| Priority | `LOW` · `MEDIUM` · `HIGH` |
+| Deadline | none / today / tomorrow / +7d / +14d / custom date |
+| Tags | comma-separated, normalized automatically |
 
-- description
-- status
-- priority
-- deadline
-- tags
+---
 
-## Storage Format
-
-The app stores data in a JSON file with this top-level structure:
-
-```json
-{
-  "tasks": []
-}
-```
-
-Example task:
+## Data Model
 
 ```json
 {
@@ -136,78 +104,86 @@ Example task:
 }
 ```
 
+| Field | Type | Notes |
+|---|---|---|
+| `idx` | UUIDv4 | auto-generated |
+| `description` | string | 3–120 characters, required |
+| `status` | enum | `todo` · `in progress` · `completed` · `blocked` |
+| `priority` | enum | `LOW=1` · `MEDIUM=2` · `HIGH=3` |
+| `created_at` | datetime | UTC, set at creation |
+| `deadline` | date · null | must not predate `created_at` |
+| `completed_at` | datetime · null | auto-set when status becomes `completed` |
+| `tags` | list[str] | lowercase, trimmed, deduplicated |
+
+---
+
+## Architecture
+
+**Key design decisions:**
+
+- `Task` owns all field-level validation: description length, deadline rules, UUID parsing, tag normalization, completion timestamps.
+- `TaskList` owns collection behavior: uniqueness, filtering, sorting, lookup, serialization.
+- CLI commands orchestrate user workflows but contain no business logic.
+- Storage is file-based, isolated behind a state module, and configured via environment variable.
+- Tests patch prompts and storage functions via `monkeypatch` — no test touches the real filesystem except through `tmp_path`.
+
+---
+
+## Tech Stack
+
+| Area | Tool |
+|---|---|
+| Language | Python 3.13 |
+| CLI | [Typer](https://typer.tiangolo.com/) |
+| Prompts | [Questionary](https://questionary.readthedocs.io/) |
+| Terminal output | [Rich](https://rich.readthedocs.io/) |
+| Package manager | [uv](https://docs.astral.sh/uv/) |
+| Tests | [pytest](https://pytest.org/) + [pytest-cov](https://pytest-cov.readthedocs.io/) |
+| Linting / formatting | [Ruff](https://docs.astral.sh/ruff/) |
+| Type checking | [ty](https://github.com/astral-sh/ty) |
+| Git hooks | [pre-commit](https://pre-commit.com/) |
+
+---
+
 ## Development
 
-Run tests:
-
 ```powershell
-uv run pytest
+uv run ruff format       # format code
+uv run ruff check        # lint
+uv run ty check          # type check
+uv run pytest            # run tests with coverage
 ```
 
-Run linting:
+Pre-commit hooks run `ruff format`, `ruff check`, and `ty check` on every commit.
+`pytest` runs on push.
 
-```powershell
-uv run ruff check src tests
-```
+Branch coverage threshold: **100%**.
+`DeprecationWarning` and `FutureWarning` are treated as errors.
 
-Format code:
-
-```powershell
-uv run ruff format
-```
-
-Run type checking:
-
-```powershell
-uv run ty check
-```
-
-## Quality
-
-The repository is configured with:
-
-- strict linting and formatting through Ruff
-- type checking through ty
-- automated tests with pytest
-- coverage configuration
-- pre-commit hooks for local quality gates
-- docstrings in production code
+---
 
 ## Project Structure
 
-```text
-todo_app/
-|-- main.py
-|-- pyproject.toml
-|-- pytest.toml
-|-- ruff.toml
-|-- src/
-|   |-- cli/
-|   |-- enums/
-|   |-- schemas/
-|   |-- task/
-|   |-- task_list/
-|   `-- ui/
-`-- tests/
-    |-- cli/
-    |-- schemas/
-    |-- task/
-    |-- task_list/
-    `-- ui/
-```
+---
+
+## Roadmap
+
+- [ ] Non-interactive subcommands (`add`, `list`, `done`, `remove`, `update`)
+- [ ] Packaged console entry point (`todo-app`)
+- [ ] Storage initialization command (`init`)
+- [ ] Structured logging
+- [ ] JSON schema versioning and migrations
+- [ ] CI pipeline (Ruff, ty, pytest, coverage)
+- [ ] SQLite backend for concurrent access
+
+---
 
 ## Notes
 
-- This is a local CLI application, not a web app.
-- The storage file must exist before running the app.
-- `STORAGE_PATH_ENV` must point to a valid JSON storage file.
-- The project favors explicit, testable Python over framework-heavy architecture.
+- This is a local CLI application. No web server, no database, no background process.
+- The storage file must exist before running — the app does not create it automatically.
+- The project favors explicit, testable code over framework-heavy architecture.
 
-## Next Improvements
+---
 
-- Add a packaged console command such as `todo-app`
-- Add non-interactive CLI commands for scripting
-- Add a storage initialization command
-- Add structured logging
-- Add schema versioning for stored JSON data
-- Consider SQLite for safer persistence if concurrent access becomes important
+<sub>Built by <a href="https://github.com/stuntsxlc4">Rafal</a> · Python 3.13 · local-first</sub>
